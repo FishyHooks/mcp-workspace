@@ -15,3 +15,12 @@
 - Updated PROJECT_STATE.md. PLAN_LOG.md and DECISIONS.md left untouched.
 - Verified: code reviewed by reading only; not run in a browser.
 - Next: manual browser test, then backspace and keyboard input.
+
+## CP3: UI design, number equivalents, delete/done, keyboard (2026-10-17)
+- Redesigned `index.html`: card layout, screen panel, themed light/dark, accent operator keys, active-operator ring, key press feedback, responsive and reduced-motion rules.
+- Added number equivalents on screen: decimal value of the display, per-letter breakdown (`a=1 · b=2`), expression line with `letters (number)`, and a small number label on every letter key.
+- Finished delete (backspace key ⌫) and done (equals shows result plus full expression). Added keyboard input (a-z, `+ - * /`, Enter/`=`, Backspace/Delete, Escape).
+- Updated PLAN_LOG.md (4-part plan rewritten for letters, statuses set), DECISIONS.md (D1-D8), PROJECT_STATE.md.
+- Verified: code reviewed by reading only; not run in a browser (no browser tool in this workspace).
+- Open questions: "add-task" and "done/delete" interpretations (see DECISIONS D4, D5).
+- Next: manual browser test pass.

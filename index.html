@@ -6,23 +6,41 @@
 <title>Letter Calculator</title>
 <style>
   :root {
-    --bg: #f4f4f6;
+    --bg: #eef0f6;
+    --bg-2: #dfe3f0;
     --panel: #ffffff;
-    --text: #1b1b1f;
-    --key: #e8e8ee;
-    --key-hover: #dcdce5;
-    --accent: #3b6cf6;
-    --accent-hover: #2f58cf;
+    --text: #1b1d27;
+    --muted: #6b7088;
+    --screen: #f3f5fb;
+    --screen-border: #e1e5f2;
+    --key: #eceff7;
+    --key-hover: #dfe3f1;
+    --key-active: #cfd5ea;
+    --accent: #4c6ef5;
+    --accent-hover: #3b5bdb;
+    --accent-text: #ffffff;
+    --danger: #e8590c;
+    --danger-bg: #fff0e6;
+    --shadow: 0 20px 50px rgba(40, 50, 90, 0.18), 0 2px 6px rgba(40, 50, 90, 0.08);
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #16161a;
-      --panel: #222228;
-      --text: #f0f0f4;
-      --key: #33333c;
-      --key-hover: #42424d;
-      --accent: #5b87ff;
-      --accent-hover: #7399ff;
+      --bg: #12131a;
+      --bg-2: #1a1c28;
+      --panel: #1e2030;
+      --text: #eef0fa;
+      --muted: #9aa0bd;
+      --screen: #151726;
+      --screen-border: #2a2d44;
+      --key: #2b2e45;
+      --key-hover: #363a57;
+      --key-active: #444969;
+      --accent: #6c86ff;
+      --accent-hover: #8498ff;
+      --accent-text: #0f1220;
+      --danger: #ff9f6b;
+      --danger-bg: #3a2519;
+      --shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.3);
     }
   }
   * { box-sizing: border-box; }
@@ -32,69 +50,158 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--bg);
+    padding: 16px;
+    background: radial-gradient(circle at 20% 10%, var(--bg-2), var(--bg) 60%);
     color: var(--text);
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   }
   .calculator {
     width: 100%;
-    max-width: 380px;
-    padding: 16px;
+    max-width: 400px;
+    padding: 18px;
     background: var(--panel);
-    border-radius: 16px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    border-radius: 24px;
+    box-shadow: var(--shadow);
   }
-  .display {
-    min-height: 64px;
-    margin-bottom: 12px;
-    padding: 12px;
+  h1 {
+    margin: 2px 4px 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* Screen */
+  .screen {
+    margin-bottom: 14px;
+    padding: 12px 16px 14px;
     text-align: right;
-    font-size: 2rem;
+    background: var(--screen);
+    border: 1px solid var(--screen-border);
+    border-radius: 16px;
+  }
+  .expr {
+    min-height: 1.3em;
+    font-size: 0.9rem;
+    color: var(--muted);
     overflow-x: auto;
     white-space: nowrap;
-    background: var(--bg);
-    border-radius: 10px;
   }
+  .display {
+    min-height: 2.6rem;
+    margin: 2px 0 6px;
+    font-size: 2.2rem;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: 0.02em;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .display.error { color: var(--danger); }
+  .value {
+    padding-top: 8px;
+    border-top: 1px dashed var(--screen-border);
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .breakdown {
+    min-height: 1.3em;
+    margin-top: 2px;
+    font-size: 0.8rem;
+    color: var(--muted);
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  /* Keys */
   .row {
     display: grid;
     gap: 8px;
     margin-bottom: 8px;
   }
-  .ops { grid-template-columns: repeat(4, 1fr); }
-  .letters { grid-template-columns: repeat(6, 1fr); }
-  .bottom { grid-template-columns: 1fr 2fr; margin-bottom: 0; }
+  .ops { grid-template-columns: repeat(5, 1fr); }
+  .letters { grid-template-columns: repeat(7, 1fr); margin-bottom: 0; }
   button {
-    padding: 14px 0;
+    position: relative;
+    padding: 10px 0;
+    min-height: 48px;
+    font: inherit;
     font-size: 1.1rem;
+    font-weight: 600;
     color: var(--text);
     background: var(--key);
     border: none;
-    border-radius: 10px;
+    border-radius: 12px;
     cursor: pointer;
+    transition: background 0.12s, transform 0.08s;
   }
   button:hover { background: var(--key-hover); }
-  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  button.op, button.equals { background: var(--accent); color: #fff; }
+  button:active, button.pressed { background: var(--key-active); transform: scale(0.95); }
+  button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  button .num {
+    position: absolute;
+    right: 6px;
+    bottom: 3px;
+    font-size: 0.6rem;
+    font-weight: 500;
+    color: var(--muted);
+  }
+  button.op, button.equals {
+    background: var(--accent);
+    color: var(--accent-text);
+    font-size: 1.3rem;
+  }
   button.op:hover, button.equals:hover { background: var(--accent-hover); }
+  button.op:active, button.equals:active,
+  button.op.pressed, button.equals.pressed { background: var(--accent-hover); }
+  button.op.active { box-shadow: 0 0 0 3px var(--panel), 0 0 0 5px var(--accent); }
+  button.clear, button.delete { background: var(--danger-bg); color: var(--danger); }
+  button.clear:hover, button.delete:hover { filter: brightness(0.96); }
+
+  .hint {
+    margin: 12px 4px 0;
+    font-size: 0.72rem;
+    color: var(--muted);
+    text-align: center;
+  }
+  @media (max-width: 360px) {
+    .display { font-size: 1.8rem; }
+    button { min-height: 42px; font-size: 1rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    button { transition: none; }
+  }
 </style>
 </head>
 <body>
   <main class="calculator" aria-label="Letter calculator">
-    <div class="display" id="display" role="status" aria-live="polite">0</div>
+    <h1>Letter Calculator</h1>
+
+    <section class="screen" aria-label="Screen">
+      <div class="expr" id="expr" aria-hidden="true"></div>
+      <div class="display" id="display" role="status" aria-live="polite">0</div>
+      <div class="value" id="value">= 0</div>
+      <div class="breakdown" id="breakdown"></div>
+    </section>
 
     <div class="row ops">
       <button type="button" class="op" data-action="add" aria-label="Add">+</button>
       <button type="button" class="op" data-action="subtract" aria-label="Subtract">&minus;</button>
       <button type="button" class="op" data-action="multiply" aria-label="Multiply">&times;</button>
       <button type="button" class="op" data-action="divide" aria-label="Divide">&divide;</button>
-    </div>
-
-    <div class="row letters" id="letters"></div>
-
-    <div class="row bottom">
-      <button type="button" data-action="clear" aria-label="Clear">C</button>
       <button type="button" class="equals" data-action="equals" aria-label="Equals">=</button>
     </div>
+
+    <div class="row letters" id="letters">
+      <!-- a-z keys are added by script, followed by the delete and clear keys -->
+    </div>
+
+    <p class="hint">Keyboard: a&ndash;z, + &minus; * /, Enter, Backspace, Esc</p>
   </main>
 
 <script>
@@ -106,6 +213,7 @@
 
   const ZERO = "0";
   const ERROR = "Error";
+  const SYMBOLS = { add: "+", subtract: "\u2212", multiply: "\u00d7", divide: "\u00f7" };
 
   // Letters -> BigInt. Handles "-" prefix, "0" and "Error" (both count as 0).
   function toValue(str) {
@@ -133,23 +241,63 @@
     return negative ? "-" + out : out;
   }
 
+  // Number shown to the user, with thousands separators.
+  function formatNumber(n) {
+    return n.toLocaleString("en-US");
+  }
+
   const state = {
     current: ZERO,      // text currently shown / being typed
     stored: null,       // left-hand operand (BigInt) after pressing an operator
     operator: null,     // "add" | "subtract" | "multiply" | "divide"
-    overwrite: false    // true after equals/operator/error, so next letter starts fresh
+    overwrite: false,   // true after equals/operator/error, so next letter starts fresh
+    expr: ""            // small line above the display
   };
 
   const displayEl = document.getElementById("display");
+  const exprEl = document.getElementById("expr");
+  const valueEl = document.getElementById("value");
+  const breakdownEl = document.getElementById("breakdown");
+  const opButtons = document.querySelectorAll("button.op");
+
+  // Describe an operand as "letters (number)" for the expression line.
+  function describe(str) {
+    return str === ERROR ? ERROR : str + " (" + formatNumber(toValue(str)) + ")";
+  }
 
   function render() {
+    const isError = state.current === ERROR;
     displayEl.textContent = state.current;
+    displayEl.classList.toggle("error", isError);
+
+    // Equivalent number of whatever is on the display.
+    valueEl.textContent = isError ? "Error" : "= " + formatNumber(toValue(state.current));
+
+    // Per-letter values, e.g. "a=1 \u00b7 b=2 \u00b7 c=3". Only for short entries.
+    let text = "";
+    if (!isError && state.current !== ZERO) {
+      const body = state.current[0] === "-" ? state.current.slice(1) : state.current;
+      if (body.length <= 8) {
+        text = [...body].map((ch) => ch + "=" + (ch.charCodeAt(0) - 96)).join(" \u00b7 ");
+      } else {
+        text = body.length + " letters";
+      }
+    }
+    breakdownEl.textContent = text;
+
+    exprEl.textContent = state.expr;
+
+    // Highlight the pending operator.
+    opButtons.forEach((b) => {
+      b.classList.toggle("active", state.operator !== null && b.dataset.action === state.operator && state.overwrite);
+    });
   }
 
   function inputLetter(ch) {
     if (state.overwrite || state.current === ZERO) {
       state.current = ch;
       state.overwrite = false;
+      if (!state.operator) state.expr = "";
     } else {
       state.current += ch;
     }
@@ -179,8 +327,12 @@
   function chooseOperator(op) {
     // Chain: a + b + c resolves a + b first
     if (state.operator && !state.overwrite) {
+      const left = fromValue(state.stored);
+      const sym = SYMBOLS[state.operator];
+      const right = state.current;
       state.current = compute();
       if (state.current === ERROR) {
+        state.expr = describe(left) + " " + sym + " " + describe(right) + " =";
         resetPending();
         render();
         return;
@@ -189,13 +341,28 @@
     state.stored = toValue(state.current);
     state.operator = op;
     state.overwrite = true;
+    state.expr = describe(state.current) + " " + SYMBOLS[op];
     render();
   }
 
   function equals() {
     if (!state.operator) return;
+    const left = fromValue(state.stored);
+    const sym = SYMBOLS[state.operator];
+    const right = state.current;
     state.current = compute();
+    state.expr = describe(left) + " " + sym + " " + describe(right) + " =";
     resetPending();
+    render();
+  }
+
+  // Delete: remove the last typed letter.
+  function backspace() {
+    if (state.current === ERROR) { clearAll(); return; }
+    if (state.overwrite) return; // showing a result or a stored operand; nothing typed to delete
+    let s = state.current.slice(0, -1);
+    if (s === "" || s === "-") s = ZERO;
+    state.current = s;
     render();
   }
 
@@ -204,21 +371,43 @@
     state.stored = null;
     state.operator = null;
     state.overwrite = false;
+    state.expr = "";
     render();
   }
 
-  // Build the a-z keys.
+  // Build the a-z keys, then delete and clear (28 keys = 7 x 4 grid).
   const lettersEl = document.getElementById("letters");
   for (let i = 0; i < 26; i++) {
     const ch = String.fromCharCode(97 + i);
     const btn = document.createElement("button");
     btn.type = "button";
     btn.dataset.letter = ch;
-    btn.textContent = ch;
     btn.title = ch + " = " + (i + 1);
     btn.setAttribute("aria-label", ch + ", value " + (i + 1));
+    btn.append(ch);
+    const num = document.createElement("span");
+    num.className = "num";
+    num.setAttribute("aria-hidden", "true");
+    num.textContent = String(i + 1);
+    btn.appendChild(num);
     lettersEl.appendChild(btn);
   }
+  const delBtn = document.createElement("button");
+  delBtn.type = "button";
+  delBtn.className = "delete";
+  delBtn.dataset.action = "delete";
+  delBtn.setAttribute("aria-label", "Delete last letter");
+  delBtn.title = "Delete (Backspace)";
+  delBtn.textContent = "\u232b";
+  lettersEl.appendChild(delBtn);
+  const clrBtn = document.createElement("button");
+  clrBtn.type = "button";
+  clrBtn.className = "clear";
+  clrBtn.dataset.action = "clear";
+  clrBtn.setAttribute("aria-label", "Clear all");
+  clrBtn.title = "Clear (Esc)";
+  clrBtn.textContent = "C";
+  lettersEl.appendChild(clrBtn);
 
   document.querySelector(".calculator").addEventListener("click", (e) => {
     const btn = e.target.closest("button");
@@ -229,9 +418,48 @@
       equals();
     } else if (btn.dataset.action === "clear") {
       clearAll();
+    } else if (btn.dataset.action === "delete") {
+      backspace();
     } else if (btn.dataset.action) {
       chooseOperator(btn.dataset.action);
     }
+  });
+
+  // Keyboard input.
+  const KEY_OPS = { "+": "add", "-": "subtract", "*": "multiply", "/": "divide" };
+
+  function flash(btn) {
+    if (!btn) return;
+    btn.classList.add("pressed");
+    setTimeout(() => btn.classList.remove("pressed"), 120);
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const key = e.key;
+    let handled = true;
+
+    if (/^[a-zA-Z]$/.test(key)) {
+      const ch = key.toLowerCase();
+      inputLetter(ch);
+      flash(document.querySelector('button[data-letter="' + ch + '"]'));
+    } else if (KEY_OPS[key]) {
+      chooseOperator(KEY_OPS[key]);
+      flash(document.querySelector('button[data-action="' + KEY_OPS[key] + '"]'));
+    } else if (key === "Enter" || key === "=") {
+      equals();
+      flash(document.querySelector('button[data-action="equals"]'));
+    } else if (key === "Backspace" || key === "Delete") {
+      backspace();
+      flash(document.querySelector('button[data-action="delete"]'));
+    } else if (key === "Escape") {
+      clearAll();
+      flash(document.querySelector('button[data-action="clear"]'));
+    } else {
+      handled = false;
+    }
+    // Stops "/" quick-find and stops Enter/Space from also clicking a focused button.
+    if (handled) e.preventDefault();
   });
 
   render();
