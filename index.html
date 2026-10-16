@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calculator</title>
+<style>
+  :root {
+    --bg: #f4f4f6;
+    --panel: #ffffff;
+    --text: #1b1b1f;
+    --key: #e8e8ee;
+    --key-hover: #dcdce5;
+    --accent: #3b6cf6;
+    --accent-hover: #2f58cf;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16161a;
+      --panel: #222228;
+      --text: #f0f0f4;
+      --key: #33333c;
+      --key-hover: #42424d;
+      --accent: #5b87ff;
+      --accent-hover: #7399ff;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  .calculator {
+    width: 100%;
+    max-width: 320px;
+    padding: 16px;
+    background: var(--panel);
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  }
+  .display {
+    min-height: 64px;
+    margin-bottom: 12px;
+    padding: 12px;
+    text-align: right;
+    font-size: 2rem;
+    overflow-x: auto;
+    white-space: nowrap;
+    background: var(--bg);
+    border-radius: 10px;
+  }
+  .keys {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  button {
+    padding: 16px 0;
+    font-size: 1.2rem;
+    color: var(--text);
+    background: var(--key);
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+  }
+  button:hover { background: var(--key-hover); }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button.op, button.equals { background: var(--accent); color: #fff; }
+  button.op:hover, button.equals:hover { background: var(--accent-hover); }
+  button.span3 { grid-column: span 3; }
+  button.equals { grid-row: span 4; }
+</style>
+</head>
+<body>
+  <main class="calculator" aria-label="Calculator">
+    <div class="display" id="display" role="status" aria-live="polite">0</div>
+    <div class="keys">
+      <button type="button" class="span3" data-action="clear">C</button>
+      <button type="button" class="op" data-action="add" aria-label="Add">+</button>
+
+      <button type="button" data-digit="7">7</button>
+      <button type="button" data-digit="8">8</button>
+      <button type="button" data-digit="9">9</button>
+      <button type="button" class="equals" data-action="equals" aria-label="Equals">=</button>
+
+      <button type="button" data-digit="4">4</button>
+      <button type="button" data-digit="5">5</button>
+      <button type="button" data-digit="6">6</button>
+
+      <button type="button" data-digit="1">1</button>
+      <button type="button" data-digit="2">2</button>
+      <button type="button" data-digit="3">3</button>
+
+      <button type="button" class="span3" data-digit="0">0</button>
+    </div>
+  </main>
+
+<script>
+  // Calculator state. Only addition is implemented in part 1.
+  const state = {
+    current: "0",       // number currently being typed
+    stored: null,       // left-hand operand after pressing an operator
+    operator: null,     // pending operator ("add" for now)
+    overwrite: false    // true after equals/operator, so next digit starts fresh
+  };
+
+  const displayEl = document.getElementById("display");
+
+  function render() {
+    displayEl.textContent = state.current;
+  }
+
+  function inputDigit(d) {
+    if (state.overwrite || state.current === "0") {
+      state.current = d;
+      state.overwrite = false;
+    } else {
+      state.current += d;
+    }
+    render();
+  }
+
+  function compute() {
+    if (state.operator === "add" && state.stored !== null) {
+      const result = state.stored + Number(state.current);
+      // Trim floating point noise (e.g. 0.1 + 0.2)
+      return String(parseFloat(result.toPrecision(12)));
+    }
+    return state.current;
+  }
+
+  function chooseOperator(op) {
+    // Chain: 1 + 2 + 3 resolves 1 + 2 first
+    if (state.operator && !state.overwrite) {
+      state.current = compute();
+    }
+    state.stored = Number(state.current);
+    state.operator = op;
+    state.overwrite = true;
+    render();
+  }
+
+  function equals() {
+    if (!state.operator) return;
+    state.current = compute();
+    state.stored = null;
+    state.operator = null;
+    state.overwrite = true;
+    render();
+  }
+
+  function clearAll() {
+    state.current = "0";
+    state.stored = null;
+    state.operator = null;
+    state.overwrite = false;
+    render();
+  }
+
+  document.querySelector(".keys").addEventListener("click", (e) => {
+    const btn = e.target.closest("button");
+    if (!btn) return;
+    if (btn.dataset.digit !== undefined) {
+      inputDigit(btn.dataset.digit);
+    } else if (btn.dataset.action === "add") {
+      chooseOperator("add");
+    } else if (btn.dataset.action === "equals") {
+      equals();
+    } else if (btn.dataset.action === "clear") {
+      clearAll();
+    }
+  });
+
+  render();
+</script>
+</body>
+</html>
