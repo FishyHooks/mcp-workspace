@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Calculator</title>
+<title>Letter Calculator</title>
 <style>
   :root {
     --bg: #f4f4f6;
@@ -38,7 +38,7 @@
   }
   .calculator {
     width: 100%;
-    max-width: 320px;
+    max-width: 380px;
     padding: 16px;
     background: var(--panel);
     border-radius: 16px;
@@ -55,14 +55,17 @@
     background: var(--bg);
     border-radius: 10px;
   }
-  .keys {
+  .row {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
     gap: 8px;
+    margin-bottom: 8px;
   }
+  .ops { grid-template-columns: repeat(4, 1fr); }
+  .letters { grid-template-columns: repeat(6, 1fr); }
+  .bottom { grid-template-columns: 1fr 2fr; margin-bottom: 0; }
   button {
-    padding: 16px 0;
-    font-size: 1.2rem;
+    padding: 14px 0;
+    font-size: 1.1rem;
     color: var(--text);
     background: var(--key);
     border: none;
@@ -73,41 +76,68 @@
   button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   button.op, button.equals { background: var(--accent); color: #fff; }
   button.op:hover, button.equals:hover { background: var(--accent-hover); }
-  button.span3 { grid-column: span 3; }
-  button.equals { grid-row: span 4; }
 </style>
 </head>
 <body>
-  <main class="calculator" aria-label="Calculator">
+  <main class="calculator" aria-label="Letter calculator">
     <div class="display" id="display" role="status" aria-live="polite">0</div>
-    <div class="keys">
-      <button type="button" class="span3" data-action="clear">C</button>
+
+    <div class="row ops">
       <button type="button" class="op" data-action="add" aria-label="Add">+</button>
+      <button type="button" class="op" data-action="subtract" aria-label="Subtract">&minus;</button>
+      <button type="button" class="op" data-action="multiply" aria-label="Multiply">&times;</button>
+      <button type="button" class="op" data-action="divide" aria-label="Divide">&divide;</button>
+    </div>
 
-      <button type="button" data-digit="7">7</button>
-      <button type="button" data-digit="8">8</button>
-      <button type="button" data-digit="9">9</button>
+    <div class="row letters" id="letters"></div>
+
+    <div class="row bottom">
+      <button type="button" data-action="clear" aria-label="Clear">C</button>
       <button type="button" class="equals" data-action="equals" aria-label="Equals">=</button>
-
-      <button type="button" data-digit="4">4</button>
-      <button type="button" data-digit="5">5</button>
-      <button type="button" data-digit="6">6</button>
-
-      <button type="button" data-digit="1">1</button>
-      <button type="button" data-digit="2">2</button>
-      <button type="button" data-digit="3">3</button>
-
-      <button type="button" class="span3" data-digit="0">0</button>
     </div>
   </main>
 
 <script>
-  // Calculator state. Only addition is implemented in part 1.
+  // Letter calculator.
+  // Values are letters: a=1, b=2, ... z=26, read as bijective base-26
+  // (like spreadsheet columns): "z" = 26, "aa" = 27, "ab" = 28, "az" = 52, "ba" = 53.
+  // There is no letter for zero, so zero is shown as "0". Negative results get a "-" prefix.
+  // Division is integer division (truncated toward zero), so results stay whole.
+
+  const ZERO = "0";
+  const ERROR = "Error";
+
+  // Letters -> BigInt. Handles "-" prefix, "0" and "Error" (both count as 0).
+  function toValue(str) {
+    if (str === ZERO || str === ERROR || str === "") return 0n;
+    let negative = false;
+    if (str[0] === "-") { negative = true; str = str.slice(1); }
+    let v = 0n;
+    for (const ch of str) {
+      v = v * 26n + BigInt(ch.charCodeAt(0) - 96);
+    }
+    return negative ? -v : v;
+  }
+
+  // BigInt -> letters.
+  function fromValue(n) {
+    if (n === 0n) return ZERO;
+    const negative = n < 0n;
+    if (negative) n = -n;
+    let out = "";
+    while (n > 0n) {
+      n -= 1n;
+      out = String.fromCharCode(97 + Number(n % 26n)) + out;
+      n /= 26n;
+    }
+    return negative ? "-" + out : out;
+  }
+
   const state = {
-    current: "0",       // number currently being typed
-    stored: null,       // left-hand operand after pressing an operator
-    operator: null,     // pending operator ("add" for now)
-    overwrite: false    // true after equals/operator, so next digit starts fresh
+    current: ZERO,      // text currently shown / being typed
+    stored: null,       // left-hand operand (BigInt) after pressing an operator
+    operator: null,     // "add" | "subtract" | "multiply" | "divide"
+    overwrite: false    // true after equals/operator/error, so next letter starts fresh
   };
 
   const displayEl = document.getElementById("display");
@@ -116,31 +146,47 @@
     displayEl.textContent = state.current;
   }
 
-  function inputDigit(d) {
-    if (state.overwrite || state.current === "0") {
-      state.current = d;
+  function inputLetter(ch) {
+    if (state.overwrite || state.current === ZERO) {
+      state.current = ch;
       state.overwrite = false;
     } else {
-      state.current += d;
+      state.current += ch;
     }
     render();
   }
 
+  // Returns the result as a display string, or ERROR on divide by zero.
   function compute() {
-    if (state.operator === "add" && state.stored !== null) {
-      const result = state.stored + Number(state.current);
-      // Trim floating point noise (e.g. 0.1 + 0.2)
-      return String(parseFloat(result.toPrecision(12)));
+    if (!state.operator || state.stored === null) return state.current;
+    const a = state.stored;
+    const b = toValue(state.current);
+    switch (state.operator) {
+      case "add":      return fromValue(a + b);
+      case "subtract": return fromValue(a - b);
+      case "multiply": return fromValue(a * b);
+      case "divide":   return b === 0n ? ERROR : fromValue(a / b);
     }
     return state.current;
   }
 
+  function resetPending() {
+    state.stored = null;
+    state.operator = null;
+    state.overwrite = true;
+  }
+
   function chooseOperator(op) {
-    // Chain: 1 + 2 + 3 resolves 1 + 2 first
+    // Chain: a + b + c resolves a + b first
     if (state.operator && !state.overwrite) {
       state.current = compute();
+      if (state.current === ERROR) {
+        resetPending();
+        render();
+        return;
+      }
     }
-    state.stored = Number(state.current);
+    state.stored = toValue(state.current);
     state.operator = op;
     state.overwrite = true;
     render();
@@ -149,31 +195,42 @@
   function equals() {
     if (!state.operator) return;
     state.current = compute();
-    state.stored = null;
-    state.operator = null;
-    state.overwrite = true;
+    resetPending();
     render();
   }
 
   function clearAll() {
-    state.current = "0";
+    state.current = ZERO;
     state.stored = null;
     state.operator = null;
     state.overwrite = false;
     render();
   }
 
-  document.querySelector(".keys").addEventListener("click", (e) => {
+  // Build the a-z keys.
+  const lettersEl = document.getElementById("letters");
+  for (let i = 0; i < 26; i++) {
+    const ch = String.fromCharCode(97 + i);
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.dataset.letter = ch;
+    btn.textContent = ch;
+    btn.title = ch + " = " + (i + 1);
+    btn.setAttribute("aria-label", ch + ", value " + (i + 1));
+    lettersEl.appendChild(btn);
+  }
+
+  document.querySelector(".calculator").addEventListener("click", (e) => {
     const btn = e.target.closest("button");
     if (!btn) return;
-    if (btn.dataset.digit !== undefined) {
-      inputDigit(btn.dataset.digit);
-    } else if (btn.dataset.action === "add") {
-      chooseOperator("add");
+    if (btn.dataset.letter !== undefined) {
+      inputLetter(btn.dataset.letter);
     } else if (btn.dataset.action === "equals") {
       equals();
     } else if (btn.dataset.action === "clear") {
       clearAll();
+    } else if (btn.dataset.action) {
+      chooseOperator(btn.dataset.action);
     }
   });
 
